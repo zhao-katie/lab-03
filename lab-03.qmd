@@ -3,13 +3,14 @@ title: "lab-02"
 author: "Katie Zhao"
 format: html
 editor: visual
+embed-resources: true
 ---
 
 ## Quarto
 
 Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
 
-\###**Packages**\##
+### **Packages**
 
 ```{r}
 library(tidyverse)
@@ -21,7 +22,7 @@ library(tidyverse)
 met <- read.csv("met_all.gz")
 ```
 
-## **Check the dimensions, headers, footers**
+### **Check the dimensions, headers, footers**
 
 ```{r}
 dim(met)
@@ -29,13 +30,13 @@ dim(met)
 
 There are 2377343 rows and 30 columns in this dataset.
 
-## **Take a look at all the variables (hint: use the str function)**
+### **Take a look at all the variables (hint: use the str function)**
 
 ```{r}
 str(met)
 ```
 
-## **Take a closer look at the key variables (year, day, hour, temp, elev, wind.sp). Hint: use table and/or summary).**
+### **Take a closer look at the key variables (year, day, hour, temp, elev, wind.sp). Hint: use table and/or summary).**
 
 ```{r}
 table(met$year)
@@ -74,7 +75,7 @@ summary(met1$temp)
 
 The new lowest temperature is -17.20 degrees Celsius.
 
-\##**Check the data against an external data source.**
+### **Check the data against an external data source.**
 
 ```{r}
 summary(met1$elev1)
@@ -198,4 +199,4 @@ plot(met_q$lat, met_q$temp,
 cor(met_q$lat, met_q$temp, use = "complete.obs")
 ```
 
-25 degrees corresponds to the South part of the country, while 45 corresponds to the North. Here, a more clear trend (\|correlation\| = 0.7190146) is seen where as latitude increases (move up north), temperature decreases.
+25 degrees corresponds to the South part of the country, while 45 corresponds to the North. Here, a clearer trend (\|correlation\| = 0.7190146) is seen where as latitude increases (move up north), temperature decreases.
