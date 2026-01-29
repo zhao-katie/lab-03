@@ -1,0 +1,201 @@
+---
+title: "lab-02"
+author: "Katie Zhao"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+\###**Packages**\##
+
+```{r}
+library(tidyverse)
+```
+
+### **Read in the data**
+
+```{r}
+met <- read.csv("met_all.gz")
+```
+
+## **Check the dimensions, headers, footers**
+
+```{r}
+dim(met)
+```
+
+There are 2377343 rows and 30 columns in this dataset.
+
+## **Take a look at all the variables (hint: use the str function)**
+
+```{r}
+str(met)
+```
+
+## **Take a closer look at the key variables (year, day, hour, temp, elev, wind.sp). Hint: use table and/or summary).**
+
+```{r}
+table(met$year)
+table(met$day)
+table(met$hour)
+
+summary(met$temp)
+summary(met$elev)
+summary(met$wind.sp)
+```
+
+Replace elevations with 9999 as NA.
+
+```{r}
+met <- met %>% 
+  mutate(elev1 = ifelse(elev == 9999, NA, elev))
+```
+
+At what elevation is the highest weather station?
+
+```{r}
+summary(met$elev1)
+```
+
+4113 meters
+
+We also have the issue of the minimum temperature being -40C, so we should remove those observations. Also, remove the NA temperature points.
+
+```{r}
+met1 <- met %>% 
+  filter(temp != -40) %>% 
+  filter(!is.na(temp))
+
+summary(met1$temp)
+```
+
+The new lowest temperature is -17.20 degrees Celsius.
+
+\##**Check the data against an external data source.**
+
+```{r}
+summary(met1$elev1)
+```
+
+The range of elevations is now -13 meters to 4113 meters. Given that the lowest elevation in the United States is -85.3 meters (Death Valley California) and the highest is 6190.5 meters (Denali Borough, Alaska), the range seen in the dataset does make sense.
+
+```{r}
+met1 %>% 
+  filter(temp == -17.20) %>% 
+  select(lat, lon)
+```
+
+The latitude and longitude of this suspicious -17.2C temperature value is (38.767, -104.3), which is located near El Paso County, Colorado. Thus, it is unlikely that during the month of August, it had a recorded temperature of -17.2C.
+
+```{r}
+met1 <- met1 %>% 
+  mutate(temp = ifelse(temp == -17.20, NA, temp))
+summary(met1$temp)
+```
+
+### **Calculate summary statistics**
+
+Remember to keep the initial question in mind. We want to pick out the weather station with maximum elevation and examine its windspeed and temperature.
+
+```{r}
+met_eda <- met1[met1$elev1 == 4113, c("temp", "wind.sp", "hour", "day")]
+```
+
+Some ideas: select the weather station with maximum elevation; within this station, look at the correlation between temperature and wind speed; look at the correlation between each of temperature and wind speed with each of hour and day.
+
+```{r}
+cor(met_eda$temp, met_eda$wind.sp, use = "complete.obs")
+
+cor(met_eda$temp, met_eda$hour, use = "complete.obs")
+cor(met_eda$temp, met_eda$day, use = "complete.obs")
+
+cor(met_eda$wind.sp, met_eda$hour, use = "complete.obs")
+cor(met_eda$wind.sp, met_eda$day, use = "complete.obs")
+cor(met_eda, use = "complete.obs")
+```
+
+The variables with the highest correlation are between temperature and hour (0.4397261) as well as wind speed and day (0.3643079).
+
+### **Exploratory graphs**
+
+```{r}
+par(mfrow = c(2,2))
+hist(met1$elev)
+hist(met1$temp)
+hist(met1$wind.sp)
+```
+
+```{r}
+library(leaflet)
+
+elev <- met1[met1$elev1 == 4113, ]
+
+leaflet(elev) %>%
+  addProviderTiles('OpenStreetMap') %>% 
+  addCircles(lat=~lat,lng=~lon, opacity=1, fillOpacity=1, radius=100)
+```
+
+Look at the time series of temperature and wind speed at this location. For this we will need to create a date-time variable for the x-axis.
+
+```{r}
+library(lubridate)
+elev$date <- with(elev, ymd_h(paste(year, month, day, hour, sep= ' ')))
+summary(elev$date)
+elev <- elev[order(elev$date), ]
+head(elev)
+```
+
+Given the date-time variable, plot the time series of temperature and also wind speed.
+
+```{r}
+par(mfrow = c(2,1))
+
+plot(elev$date, elev$temp,
+     xlab = "Time Series",
+     ylab = "Temperature (in Celsius)",
+     main = "Time Series of Temperature",
+     type = "l")
+
+plot(elev$date, elev$wind.sp,
+     xlab = "Time Series",
+     ylab = "Wind Speed",
+     main = "Time Series of Wind Speed",
+     type = "l")
+
+```
+
+For the time series of temperature, there is a strong cyclical pattern of the temperature increasing and decreasing within the same range (\~2C - 14C), roughly on what appeared to have a daily basis (which makes sense, given that in a given day the temperature tends to rise/fall naturally).
+
+For the time series of wind speed, there also seems to be a cyclical nature of the wind speeds rising and fall within the course of a day (similar to temperature). However, during the latter half of the month, the "overall" trend of wind speed experienced a rise between August 12-19, then a fall between August 18-20, and then a rise again between August 20-28.
+
+### **Ask questions**
+
+Question: Is there a relationship between latitude/longtitude and temperature (looking at the US "horizontally")?
+
+Using Day 8, Hour 12 Observations
+
+```{r}
+met_q <- met %>% 
+  filter(day == 8,
+         hour == 12)
+
+plot(met_q$lon, met_q$temp, 
+     xlab = "Longtitude Coordinates", ylab = "Temperature (C)",
+     main = "Temperature vs. Lontitude Coordinates (US)")
+cor(met_q$lon, met_q$temp, use = "complete.obs")
+
+```
+
+-120 degrees corresponds to the West side of the country, while -70 corresponds to the East. Though the correlation is relatively low (0.3770869), there's a trend that stations on the East reported higher temperatures than those on the West (on this specific day in August).
+
+```{r}
+plot(met_q$lat, met_q$temp, 
+     xlab = "Latitude Coordinates", ylab = "Temperature (C)",
+     main = "Temperature vs. Latitude Coordinates (US)")
+cor(met_q$lat, met_q$temp, use = "complete.obs")
+```
+
+25 degrees corresponds to the South part of the country, while 45 corresponds to the North. Here, a more clear trend (\|correlation\| = 0.7190146) is seen where as latitude increases (move up north), temperature decreases.
